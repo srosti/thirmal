@@ -27,11 +27,12 @@ RTC_DATA_ATTR int prevTemp = 0;
 // Duration of ESP32 to stay in deep-sleep
 #define MICROSECOND 1000000
 #define MINUTE 60
-#define SLEEP_DURATION 10 * MINUTE *MICROSECOND
+// #define SLEEP_DURATION 10 * MINUTE *MICROSECOND
+ #define SLEEP_DURATION 10 *MICROSECOND
 
 // WiFi credentials.
 const char *WIFI_SSID = "Toby's Spy Camera";
- const char *WIFI_PASS = "******";
+const char *WIFI_PASS = "covington";
 
 // mqtt.eclipse.org
 const char *mqtt_server = "137.135.83.217";
@@ -68,7 +69,7 @@ void disconnect_wifi()
 bool connect_wifi()
 {
 
-  int retries = 5;
+  int retries = 10;
 
   while (WiFi.status() != WL_CONNECTED and retries > 0)
   {
@@ -76,33 +77,40 @@ bool connect_wifi()
     Serial.println("Connecting to wifi");
     WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-    Serial.print("Waiting for wifi connection: status =");
-    Serial.println(WiFi.status());
-    // Check to see if connecting failed.
-    // This is due to incorrect credentials
-    if (WiFi.status() == WL_CONNECT_FAILED)
-    {
-      Serial.println("Failed to connect to WIFI. Please verify credentials: ");
-      Serial.println();
-      Serial.print("SSID: ");
-      Serial.println(WIFI_SSID);
-      Serial.print("Password: ");
-      Serial.println(WIFI_PASS);
-      Serial.println();
-      // reset wlan on esp32
-      //      disconnect_wifi();
+    // It takes a few seconds to negotiate/connect to wifi
+    // wait to check the status.
+    delay(2000);
+
+    Serial.print(WIFI_SSID);
+    switch (WiFi.status()) {
+      case WL_CONNECTED:
+        Serial.println(" - connnected");
+        return true;
+      case WL_IDLE_STATUS:
+        Serial.println(" - wifi is changing status - not idle");
+        break;
+      case WL_NO_SSID_AVAIL:
+        Serial.println(" - ssid was not found");
+        break;
+      case WL_CONNECT_FAILED:
+        Serial.println(" - connect failed - invalid credentials");
+        break;
+      case WL_DISCONNECTED:
+        Serial.println(" - disconnnected");
+        break;
+      case WL_CONNECTION_LOST:
+        Serial.println(" - connection lost");
+        break;
+      case WL_NO_SHIELD:
+        Serial.println(" - no shield - shouldn't happen on esp32");
+        break;
+      case WL_SCAN_COMPLETED:
+        Serial.println(" - scan completed - shouldn't happen in client mode");
+        break;
     }
-    delay(1000);
     retries--;
   }
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    Serial.print("Connected to wifi: status =");
-    Serial.println(WiFi.status());
-    return true;
-  }
-  else
-    Serial.print("Could not connect to wifi");
+  Serial.print("Could not connect to wifi");
   return false;
 }
 
