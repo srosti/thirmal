@@ -2,6 +2,10 @@
 #include "WiFi.h"
 #include <PubSubClient.h>
 
+#define RLED 16
+#define GLED 17
+#define BLED 18
+
 // setup dallas dS18b20 tempeature probe
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -14,9 +18,10 @@ DallasTemperature sensors(&oneWire);
 #include <WiFiUdp.h>
 
 // Watchdog timer
-const int wdtTimeout = 3000;  //time in ms to trigger the watchdog
+const int wdtTimeout = 3000; //time in ms to trigger the watchdog
 hw_timer_t *timer = NULL;
-void IRAM_ATTR resetModule() {
+void IRAM_ATTR resetModule()
+{
   ets_printf("reboot\n");
   esp_restart();
 }
@@ -27,8 +32,8 @@ RTC_DATA_ATTR int prevTemp = 0;
 // Duration of ESP32 to stay in deep-sleep
 #define MICROSECOND 1000000
 #define MINUTE 60
-// #define SLEEP_DURATION 10 * MINUTE *MICROSECOND
- #define SLEEP_DURATION 10 *MICROSECOND
+#define SLEEP_DURATION 10 * MINUTE *MICROSECOND
+//#define SLEEP_DURATION 10 * MICROSECOND
 
 // WiFi credentials.
 const char *WIFI_SSID = "Toby's Spy Camera";
@@ -53,6 +58,14 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
+
+void blinkLED(int ledPin)
+{
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+  delay(500);
+  digitalWrite(ledPin, HIGH);
+}
 
 void disconnect_wifi()
 {
@@ -82,33 +95,36 @@ bool connect_wifi()
     delay(2000);
 
     Serial.print(WIFI_SSID);
-    switch (WiFi.status()) {
-      case WL_CONNECTED:
-        Serial.println(" - connnected");
-        return true;
-      case WL_IDLE_STATUS:
-        Serial.println(" - wifi is changing status - not idle");
-        break;
-      case WL_NO_SSID_AVAIL:
-        Serial.println(" - ssid was not found");
-        break;
-      case WL_CONNECT_FAILED:
-        Serial.println(" - connect failed - invalid credentials");
-        break;
-      case WL_DISCONNECTED:
-        Serial.println(" - disconnnected");
-        break;
-      case WL_CONNECTION_LOST:
-        Serial.println(" - connection lost");
-        break;
-      case WL_NO_SHIELD:
-        Serial.println(" - no shield - shouldn't happen on esp32");
-        break;
-      case WL_SCAN_COMPLETED:
-        Serial.println(" - scan completed - shouldn't happen in client mode");
-        break;
+    switch (WiFi.status())
+    {
+    case WL_CONNECTED:
+      Serial.println(" - connnected");
+      blinkLED(BLED);
+      return true;
+    case WL_IDLE_STATUS:
+      Serial.println(" - wifi is changing status - not idle");
+      break;
+    case WL_NO_SSID_AVAIL:
+      Serial.println(" - ssid was not found");
+      break;
+    case WL_CONNECT_FAILED:
+      Serial.println(" - connect failed - invalid credentials");
+      break;
+    case WL_DISCONNECTED:
+      Serial.println(" - disconnnected");
+      break;
+    case WL_CONNECTION_LOST:
+      Serial.println(" - connection lost");
+      break;
+    case WL_NO_SHIELD:
+      Serial.println(" - no shield - shouldn't happen on esp32");
+      break;
+    case WL_SCAN_COMPLETED:
+      Serial.println(" - scan completed - shouldn't happen in client mode");
+      break;
     }
     retries--;
+    blinkLED(RLED);
   }
   Serial.print("Could not connect to wifi");
   return false;
@@ -126,12 +142,14 @@ void mqttconnect(const char topic[])
     if (client.connect(clientId.c_str()))
     {
       Serial.println("connected");
+      blinkLED(BLED);
     }
     else
     {
       Serial.print("mqttconnnect() failed: status code=");
       Serial.print(client.state());
       client.disconnect();
+      blinkLED(RLED);
     }
     retries--;
   }
@@ -149,19 +167,22 @@ void publish(const char topic[], const char msg[])
   else
   {
     Serial.println("mqtt client client connected");
+    blinkLED(BLED);
   }
 
   Serial.println("publishing msg to topic");
   if (client.publish(topic, msg, true))
   {
     Serial.println("publish temp message success");
+    blinkLED(BLED);
   }
-
 }
 
 void get_internal_temp(char internal_temp[])
 {
-  snprintf(internal_temp, 20, "%d", temprature_sens_read());
+  // esp32 internal temp varies from part to part - calibrate it here
+  int adjusted_temp = temprature_sens_read() - 23;
+  snprintf(internal_temp, 20, "%d", adjusted_temp);
 }
 
 void get_external_temp(char external_temp[])
@@ -196,23 +217,26 @@ void get_time(char time[])
   {
     snprintf(meridieum, 2, "%s", "PM");
     hours = hours % 12;
-    if (hours == 0) {
+    if (hours == 0)
+    {
       hours = 1;
     }
   }
-  snprintf(time, 8, "%d:%02d %s", hours, minutes, meridieum);
+  snprintf(time, 10, "%d:%02d %s", hours, minutes, meridieum);
 }
 
 void setup()
 {
   char msg[20];
 
+  blinkLED(GLED);
+
   Serial.begin(115200);
-// watchdog timer
-//  timer = timerBegin(0, 80, true);                  //timer 0, div 80
-//  timerAttachInterrupt(timer, &resetModule, true);  //attach callback
-//  timerAlarmWrite(timer, wdtTimeout * 10000, false); //set time in us
-//  timerAlarmEnable(timer);                          //enable interrupt
+  // watchdog timer
+  //  timer = timerBegin(0, 80, true);                  //timer 0, div 80
+  //  timerAttachInterrupt(timer, &resetModule, true);  //attach callback
+  //  timerAlarmWrite(timer, wdtTimeout * 10000, false); //set time in us
+  //  timerAlarmEnable(timer);                          //enable interrupt
 
   if (connect_wifi())
   {
@@ -246,6 +270,7 @@ void setup()
 
   Serial.println("Putting the ESP32 into deep-sleep");
   Serial.flush();
+  blinkLED(GLED);
   esp_deep_sleep_start();
 }
 
