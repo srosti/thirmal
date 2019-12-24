@@ -20,11 +20,6 @@ DallasTemperature sensors(&oneWire);
 // Watchdog timer
 const int wdtTimeout = 3000; //time in ms to trigger the watchdog
 hw_timer_t *timer = NULL;
-void IRAM_ATTR resetModule()
-{
-  ets_printf("reboot\n");
-  esp_restart();
-}
 
 // RTC SRAM is preserved in deep-sleep
 RTC_DATA_ATTR int prevTemp = 0;
@@ -32,19 +27,17 @@ RTC_DATA_ATTR int prevTemp = 0;
 // Duration of ESP32 to stay in deep-sleep
 #define MICROSECOND 1000000
 #define MINUTE 60
-#define SLEEP_DURATION 10 * MINUTE *MICROSECOND
+#define SLEEP_DURATION 30 * MINUTE *MICROSECOND
 //#define SLEEP_DURATION 10 * MICROSECOND
 
 // WiFi credentials.
 const char *WIFI_SSID = "Toby's Spy Camera";
 const char *WIFI_PASS = "covington";
 
-// mqtt.eclipse.org
-const char *mqtt_server = "137.135.83.217";
-
 /* create an instance of PubSubClient client */
 WiFiClient espClient;
 PubSubClient client(espClient);
+const char *mqtt_server = "srosti.hopto.org";
 #define EXTERNAL_TEMP_TOPIC "cabin/hottub/external-temp"
 #define INTERNAL_TEMP_TOPIC "cabin/hottub/internal-temp"
 #define TIME_TOPIC "cabin/hottub/time"
@@ -82,7 +75,7 @@ void disconnect_wifi()
 bool connect_wifi()
 {
 
-  int retries = 10;
+  int retries = 5;
 
   while (WiFi.status() != WL_CONNECTED and retries > 0)
   {
@@ -213,16 +206,16 @@ void get_time(char time[])
 
   hours = timeClient.getHours();
   minutes = timeClient.getMinutes();
-  if (hours > 12)
+  if (hours >= 12)
   {
-    snprintf(meridieum, 2, "%s", "PM");
+    snprintf(meridieum, 3, "%s", "PM");
     hours = hours % 12;
     if (hours == 0)
     {
-      hours = 1;
+      hours = 12;
     }
   }
-  snprintf(time, 10, "%d:%02d %s", hours, minutes, meridieum);
+  snprintf(time, 16, "%d:%02d %s", hours, minutes, meridieum);
 }
 
 void setup()
@@ -259,11 +252,8 @@ void setup()
     publish(TIME_TOPIC, msg);
   }
 
-  delay(1000);
-
   Serial.println("Disconnecting from wifi");
   disconnect_wifi();
-  delay(1000);
 
   Serial.println("Enabling ESP32 deep-sleep");
   esp_sleep_enable_timer_wakeup(SLEEP_DURATION);
