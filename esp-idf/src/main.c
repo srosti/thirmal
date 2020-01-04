@@ -33,6 +33,7 @@ const static int CONNECTED_BIT = BIT0;
 #define DEBUG_TOPIC "cabin/hottub/debug"
 #define TEST_TOPIC "test"
 
+int get_temp();
 
 
 static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
@@ -150,6 +151,8 @@ void app_main()
     esp_log_level_set("TRANSPORT_SSL", ESP_LOG_VERBOSE);
     esp_log_level_set("TRANSPORT", ESP_LOG_VERBOSE);
     esp_log_level_set("OUTBOX", ESP_LOG_VERBOSE);
+
+    get_temp();
 
     nvs_flash_init();
     wifi_init();
