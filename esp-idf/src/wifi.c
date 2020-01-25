@@ -26,15 +26,19 @@ const static int CONNECTED_BIT = BIT0;
 
 static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
 {
+    ESP_LOGI(WIFI_TAG, "wifi event handler event id=%d", event->event_id);
     switch (event->event_id) {
         case SYSTEM_EVENT_STA_START:
+            ESP_LOGI(WIFI_TAG, "SYSTEM_EVENT_STA_START: call esp_wifi_connect");
             esp_wifi_connect();
             break;
         case SYSTEM_EVENT_STA_GOT_IP:
+            ESP_LOGI(WIFI_TAG, "SYSTEM_EVENT_STA_GOT_IP: connected");
             xEventGroupSetBits(wifi_event_group, CONNECTED_BIT);
 
             break;
         case SYSTEM_EVENT_STA_DISCONNECTED:
+            ESP_LOGI(WIFI_TAG, "SYSTEM_EVENT_STA_GOT_IP: disconnected");
             esp_wifi_connect();
             xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
             break;
