@@ -2,7 +2,8 @@ import machine, esp32
 import onewire, ds18x20
 import time
 import network
-import ubinascii, umqtt
+import ubinascii
+from umqtt.simple import MQTTClient
 
 
 def get_esp32_temp():
@@ -24,9 +25,14 @@ def connect_wifi():
     wlan.active(True)
     wlan.connect('iot-gadgets', '!QAZ2wsx')
 
+def disconnect_wifi():
+    wlan = network.WLAN(network.STA_IF)
+    wlan.disconnect()
+    wlan.active(False)
+
 def publish(topic, data):
     client_id = ubinascii.hexlify(machine.unique_id())
-    mqtt = umqtt.simple.MQTTClient(client_id, 'srosti.hopto.org')
+    mqtt = MQTTClient(client_id, 'srosti.hopto.org')
     mqtt.connect()
     # mqtt has no notion of data types, convert float to a string
     if(isinstance(data, float)):
@@ -34,10 +40,13 @@ def publish(topic, data):
     mqtt.publish(topic, data)
     mqtt.disconnect()
 
-esp_temp = get_esp32_temp()
-probe_temp = get_probe_temp()
-print(probe_temp)
-print(esp_temp)
+while (True):
+    esp_temp = get_esp32_temp()
+    probe_temp = get_probe_temp()
+    print(probe_temp)
+    print(esp_temp)
 
-connect_wifi()
-publish('test', probe_temp)
+    connect_wifi()
+    publish('test', probe_temp)
+    disconnect_wifi()
+    machine.deepsleep(5000)
