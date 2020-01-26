@@ -21,8 +21,9 @@ static const char *WIFI_TAG = "WIFI";
 static EventGroupHandle_t wifi_event_group;
 const static int CONNECTED_BIT = BIT0;
 
-#define CONFIG_WIFI_SSID "Toby's Spy Camera"
-#define CONFIG_WIFI_PASSWORD "covington"
+// iot-gadgets is on a separate vlan
+#define CONFIG_WIFI_SSID "iot-gadgets"
+#define CONFIG_WIFI_PASSWORD "!QAZ2wsx"
 
 static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
 {

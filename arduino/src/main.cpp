@@ -30,9 +30,9 @@ RTC_DATA_ATTR int prevTemp = 0;
 #define SLEEP_DURATION 30 * MINUTE *MICROSECOND
 //#define SLEEP_DURATION 10 * MICROSECOND
 
-// WiFi credentials.
-const char *WIFI_SSID = "Toby's Spy Camera";
-const char *WIFI_PASS = "covington";
+// WiFi credentials. put on separate vlan
+const char *WIFI_SSID = "iot-gadgets";
+const char *WIFI_PASS = "!QAZ2wsx";
 
 /* create an instance of PubSubClient client */
 WiFiClient espClient;
